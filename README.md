@@ -22,6 +22,8 @@ Run:
 ```
 streamlit run streamlit_app.py
 ```
+It will look like this!
+![Streamlit demo of LERG](img/app_snapshot_ori.png)
 
 ## Usage
 
