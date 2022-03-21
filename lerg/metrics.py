@@ -31,6 +31,7 @@ def remove_expl(x, expl, ratio=0.2):
     if expl is None:
         x_re = [tok for tok in x if random.random() >= ratio]
     else:
+        k = int(len(x) * ratio // 1)
         topk = torch.topk(expl, k)
         x_re = [tok for ind, tok in enumerate(x) if ind not in topk.indices]
     return x_re
@@ -49,7 +50,7 @@ def ppl_c_add(expl, x, y, model_f, ratio=0.2):
     x_add = get_expl(x, expl, ratio=ratio)
     y_probs_add, y_inds = model_f([x_add], label=y, is_x_tokenized=True, is_y_tokenized=True)
     ppl_add, ent_add = get_ppl(y_probs_add.cpu(), y_inds)
-    return ent_add, ppl_add, x_add, x_entities
+    return ent_add, ppl_add, x_add
 
 def ppl_c(expl, x, y, model_f, ratio=0.2):
     """

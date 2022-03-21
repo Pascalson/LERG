@@ -1,8 +1,5 @@
-matplotlib==3.3.2
-nltk==3.5
-numpy==1.19.2
-pytorch-ignite==0.4.2
-torch==1.5.1
-torchvision==0.6.1
-tqdm==4.50.0
-transformers==4.1.1
+matplotlib>=3.3.2
+numpy>=1.19.2
+torch>=1.5.1
+tqdm>=4.50.0
+transformers>=4.1.1

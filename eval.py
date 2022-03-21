@@ -1,8 +1,6 @@
-from perturbation_models import BasicPM, RandomPM, RandomPhrasePM
 from target_models import GPT
-
-from metrics import ppl_c, ppl_c_add
-from interaction_utils import plot_interactions
+from lerg.metrics import ppl_c, ppl_c_add
+from lerg.visualize import plot_interactions
 
 import tqdm
 import sys
@@ -11,6 +9,20 @@ import torch
 import numpy as np
 import os
 from datetime import datetime
+from argparse import ArgumentParser
+
+parser = ArgumentParser()
+parser.add_argument("--explain_method",type=str,required=True,
+    help="Choose from 'LERG_S', 'LERG_L', 'SHAP', 'LIME', 'attn', 'grad', 'none'(random)")
+parser.add_argument("--time_stamp",type=str,required=True,
+    help="None for 'attn','grad','none'(random); for others, the time stamp in format '%m%d%Y_%H%M%S' of the saved explanations after runing 'explain.py'")
+parser.add_argument("--model_dir",type=str,required=True,
+    help="Directory of the trained target model")
+parser.add_argument("--data_path",type=str,required=True,
+    help="Path of the data for explaining the target model on")
+parser.add_argument("--plot",action='store_true',
+    help="If true, plot the interactions (maps) for all data points")
+args = parser.parse_args()
 
 def read_data(data_path):
     with open(data_path,"r") as fin:
@@ -21,7 +33,7 @@ def read_data(data_path):
 pplc_r_ratios = [0.1,0.2,0.3,0.4,0.5]
 ppl_a_ratios = [0.5,0.6,0.7,0.8,0.9]
 
-def evaluate_exp(tokenizer, model_f, denoise_f, data_path):
+def evaluate_exp(tokenizer, model_f, data_path):
     data = read_data(data_path)
     avg_pplc = [0 for _ in pplc_r_ratios]
     avg_pplc_add = [0 for _ in ppl_a_ratios]
@@ -36,16 +48,16 @@ def evaluate_exp(tokenizer, model_f, denoise_f, data_path):
 
     example_id = 0
     count = 0
-    if sys.argv[3] == "True":
-        if not os.path.exists("plots/{}/".format(sys.argv[1])):
-            os.mkdir("plots/{}".format(sys.argv[1]))
-    if sys.argv[1] == "attn" or sys.argv[1] == "none" or sys.argv[1] == "grad":
+    if args.plot:
+        if not os.path.exists("plots/{}/".format(args.explain_method)):
+            os.mkdir("plots/{}".format(args.explain_method))
+    if args.explain_method == "attn" or args.explain_method == "none" or args.explain_method == "grad":
         for x, y in tqdm.tqdm(data):
             if len(tokenizer.tokenize(x)) <= 30 and len(tokenizer.tokenize(y)) <= 30:
-                if sys.argv[1] != "none":
-                    phi_set, phi_map, x_components, y_components = model_f([x],y,output_type=sys.argv[1])
-                    if sys.argv[3] == "True":
-                        plot_interactions(phi_map,x_components,y_components,save_path='plots/{}/{}_{}.png'.format(sys.argv[1], example_id, sys.argv[2]))
+                if args.explain_method != "none":
+                    phi_set, phi_map, x_components, y_components = model_f([x],y,output_type=args.explain_method)
+                    if args.plot:
+                        plot_interactions(phi_map,x_components,y_components,save_path='plots/{}/{}_{}.png'.format(args.explain_method, example_id, args.time_stamp))
                 else:
                     phi_set, phi_map = None, None
                     x_components = tokenizer.tokenize(x)
@@ -55,11 +67,11 @@ def evaluate_exp(tokenizer, model_f, denoise_f, data_path):
             example_id += 1
     else:
         for x, y in tqdm.tqdm(data):
-            exp_path = 'exp/{}_{}_{}.exp'.format(sys.argv[1], example_id, sys.argv[2])
+            exp_path = 'exp/{}_{}_{}.exp'.format(args.explain_method, example_id, args.time_stamp)
             if os.path.exists(exp_path):
                 phi_set, phi_map, x_components, y_components = torch.load(exp_path)
-                if sys.argv[3] == "True":
-                    plot_interactions(phi_map,x_components,y_components,save_path='plots/{}/{}_{}.png'.format(sys.argv[1], example_id, sys.argv[2]))
+                if args.plot:
+                    plot_interactions(phi_map,x_components,y_components,save_path='plots/{}/{}_{}.png'.format(args.explain_method, example_id, args.time_stamp))
                 count_stats(phi_set, phi_map, x_components, y_components, model_f)
                 count += 1
             example_id += 1
@@ -69,5 +81,5 @@ def evaluate_exp(tokenizer, model_f, denoise_f, data_path):
 
 
 if __name__ == "__main__":
-    model = GPT(model_dir=sys.argv[4])
-    evaluate_exp(model.tokenizer, model.forward, sys.argv[5])
+    model = GPT(model_dir=args.model_dir)
+    evaluate_exp(model.tokenizer, model.forward, args.data_path)

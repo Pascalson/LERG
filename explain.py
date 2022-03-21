@@ -1,5 +1,5 @@
-from perturbation_models import RandomPM, LIMERandomPM
-from RG_explainers import LERG_LIME, LERG_R, LERG_SHAP, LERG_SHAP_log
+from lerg.perturbation_models import RandomPM, LIMERandomPM
+from lerg.RG_explainers import LERG_LIME, LERG_R, LERG_SHAP, LERG_SHAP_log
 from target_models import GPT
 
 import torch
@@ -8,6 +8,16 @@ import sys
 import json
 import os
 from datetime import datetime
+from argparse import ArgumentParser
+
+parser = ArgumentParser()
+parser.add_argument("--explain_method",type=str,required=True,
+    help="Choose from 'LERG_S', 'LERG_L', 'SHAP', 'LIME'")
+parser.add_argument("--model_dir",type=str,required=True,
+    help="Directory of the trained target model")
+parser.add_argument("--data_path",type=str,required=True,
+    help="Path of the data for explaining the target model on")
+args = parser.parse_args()
 
 def read_data(data_path):
     with open(data_path,"r") as fin:
@@ -34,23 +44,23 @@ def explain_dataset(explainer, model_f, tokenizer, data_path):
         if len(tokenizer.tokenize(x)) <= 30 and len(tokenizer.tokenize(y)) <= 30:
             local_exp = LERG(model_f, x, y, perturb_f, tokenizer)
             phi_set, phi_map, x_components, y_components = local_exp.get_local_exp()
-            save_path = 'exp/{}_{}_{}.exp'.format(sys.argv[1], example_id, nowstr)
+            save_path = 'exp/{}_{}_{}.exp'.format(args.explain_method, example_id, nowstr)
             local_exp.save_exp(save_path)
         example_id += 1
 
 if __name__ == "__main__":
     PM = RandomPM()
-    if sys.argv[1] == "LIME":
+    if args.explain_method == "LIME":
         PM = LIMERandomPM()
         explainer = (PM, LERG_LIME)
-    elif sys.argv[1] == "LERG_L":
+    elif args.explain_method == "LERG_L":
         PM = LIMERandomPM()
         explainer = (PM, LERG_LIME_R)
-    elif sys.argv[1] == "SHAP":
+    elif args.explain_method == "SHAP":
         explainer = (PM, LERG_SHAP)
-    elif sys.argv[1] == "LERG_S":
+    elif args.explain_method == "LERG_S":
         explainer = (PM, LERG_SHAP_log)
     else:
-        raise ValueError("select an explainer from \{'LIME', 'SHAP', 'LERG_L', 'LERG_S'\}, currently is {}".format(sys.argv[1]))
-    model = GPT(model_dir=sys.argv[2])
-    explain_dataset(explainer, model.forward, model.tokenizer, sys.argv[3])
+        raise ValueError("select an explainer from \{'LIME', 'SHAP', 'LERG_L', 'LERG_S'\}, currently is {}".format(args.explain_method))
+    model = GPT(model_dir=args.model_dir)
+    explain_dataset(explainer, model.forward, model.tokenizer, args.data_path)

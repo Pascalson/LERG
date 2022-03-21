@@ -1,29 +1,15 @@
-# Local Explanation of Dialogue Response Generation
+# LERG
 
-This repository is the official implementation of [Local Explanation of Dialogue Response Generation](https://arxiv.org/pdf/2106.06528.pdf). 
+LERG (Local Explanation of Response Generation) is a unified approach to explain why a conditional text generation model will predict a text.
+For more details, please refer to the paper [Local Explanation of Dialogue Response Generation, Neurips 2021](https://arxiv.org/pdf/2106.06528.pdf). 
 
 
-## Requirements
+## Install
 
-To install requirements:
-
-```setup
-pip install -r requirements.txt
+LERG can be installed from PyPI
 ```
-
-## Play Around!
-Requirements:
+pip install lerg
 ```
-pip install streamlit
-streamlit hello
-pip install st-annotated-text
-```
-Run:
-```
-streamlit run streamlit_app.py
-```
-It will look like this!
-![Streamlit demo of LERG](img/app_snapshot_ori.png)
 
 ## Usage
 
@@ -31,36 +17,29 @@ It will look like this!
 * Download our used data and model from [Drive](https://drive.google.com/drive/folders/1dXpdH6mPfk9uO6c2cskKJfMJ98bl0_32?usp=sharing)
 * To explain dialogue generation models via methods `LERG_S`,`LERG_L`, and baselines `SHAP`, `LIME`, run
 ```
-python explain.py LERG_S <model-dir> <data-path>
+python explain.py --explain_method LERG_S --model_dir path-to-your-model-dir --data_path path-to-your-data-in-json
 ```
 * After run `explain.py`, get the `<time-stamp>` of saved explanations that stored in format `"%m%d%Y_%H%M%S"`, run
 ```
-python eval.py LERG_S <time-stamp> <plot or not> <model-dir> <data-path>
+python eval.py --explain_method LERG_S --time_stamp time-stamp-in-specified-format --model_dir path-to-your-model-dir --data_path path-to-your-data-in-json [--plot]
 ```
 
 * To explain dialogue generation models via baselines `attn`(attention), `grad`(gradient), `none`(random), run
 ```
-python eval.py attn None <plot or not> <model-dir> <data-path>
-```
-
-
-### Explain your own model and dataset
-1. Write your model function in `target_models.py`.
-2. Replace the original line `model = GPT()` with your model in `explain.py` and `eval.py`.
-3. Run
-```
-python explain.py LERG_S <model-dir> <data-path>
-python eval.py LERG_S <time-stamp> <plot or not> <model-dir> <data-path>
+python eval.py --explain_method attn --time_stamp None --model_dir path-to-your-model-dir --data_path path-to-your-data-in-json [--plot]
 ```
 
 ### Use as package
-import a purtabation model and an explanation method, then can be used in your code as:
-```
-from perturbation_models import RandomPM
-from RG_explainers import LERG_SHAP_log as LERG_S
+You can find Jupyter notebook in `examples/`.
 
-perturb_f = RandomPM.perturb_inputs
-local_exp  = LERG_S(<replace_with_your_model_forward_function>, input, output, perturb_f, your_tokenizer)
+The overall idea is to first import a purtabation model and an explanation method, then you can use LERG as:
+```
+from lerg.perturbation_models import RandomPM
+from lerg.RG_explainers import LERG_SHAP_log as LERG_S
+
+PM = RandomPM()
+perturb_f = PM.perturb_inputs
+local_exp  = LERG_S(<replace_with_your_model_forward_function>, input_str, output_str, perturb_f, your_tokenizer)
 phi_set, phi_map, input_segments, output_segments = local_exp.get_local_exp()
 ```
 
@@ -90,12 +69,13 @@ Perplexity with additives (PPL\_A): (Slide with additive rate)
 | LERG\_S   |  11.5665 | 11.4350 | 11.5816 | 11.9123 | 12.4341 |
 
 ## Citation
-
+If you find LERG is helpful to your research, we would appreciate a citation of this paper.
 ```
-@inproceedings{tuan2021local,
+@article{tuan2021local,
   title={Local Explanation of Dialogue Response Generation},
   author={Tuan, Yi-Lin and Pryor, Connor and Chen, Wenhu and Getoor, Lise and Wang, William Yang},
-  booktitle={arxiv},
-  year={2021},
+  journal={Advances in Neural Information Processing Systems},
+  volume={34},
+  year={2021}
 }
 ```
